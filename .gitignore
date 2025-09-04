@@ -1,0 +1,48 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+*.sln.iml
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Others
+*.stackdump
+
+# Publish outputs
+publish/
+
+# Test results
+TestResults/
+
+# Configuration files
+appsettings.*.json
+!appsettings.json
+
+# Others
+*.swp
+*.tmp
