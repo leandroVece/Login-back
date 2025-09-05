@@ -112,12 +112,8 @@ public class UserUseCases : IUserUseCases
             // await _userConsents.CreateConsentAsync(consents); //consentimiento
             await _userRepository.AssingRoleToUserAsyn(createUserResponse.User, new List<string> { "user" });
 
-
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(createUserResponse.Token));
-            var confirmationLink = $"{_configuration["Frontend:BaseUrl"]}/confirm-email?Token={encodedToken}&email={data.registerUser.Email}";
-            var htmlBody = EmailTemplateBuilder.GetConfirmationEmail(confirmationLink);
-
-            var message = new Message(new string[] { data.registerUser.Email! }, "Confirmar Email por el link", htmlBody!) { IsHtml = true };
+            var message = bodyEmail("reset-password", encodedToken, data.registerUser.Email);
             _emailServisces.SendMail(message);
             return;
 
@@ -162,8 +158,8 @@ public class UserUseCases : IUserUseCases
         if (user != null)
         {
             var token = await _userRepository.GeneratePasswordReset(user);
-            string confirmationLink = $"https://localhost:44497/reset-password?token={token}&email={email}";
-            var message = new Message(new string[] { user.Email! }, "Restablecer contraseña", confirmationLink!);
+            var encodedToken = Uri.EscapeDataString(token);
+            var message = bodyEmail("reset-password", encodedToken, email);
             _emailServisces.SendMail(message);
             return;
         }
@@ -201,6 +197,13 @@ public class UserUseCases : IUserUseCases
     //     var res = await _userRepository.GetUserList(pag);
     //     return res;
     // }
+    private Message bodyEmail(string endpoint, string token, string email)
+    {
+        var confirmationLink = $"{_configuration["Frontend:BaseUrl"]}/{endpoint}?Token={token}&email={email}";
+        var htmlBody = EmailTemplateBuilder.GetConfirmationEmail(confirmationLink);
 
+        var message = new Message(new string[] { email! }, "Confirmar Email por el link", htmlBody!) { IsHtml = true };
+        return message;
+    }
 
 }
