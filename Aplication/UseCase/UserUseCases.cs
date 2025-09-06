@@ -18,7 +18,7 @@ namespace Application.UseCases;
 
 public class UserUseCases : IUserUseCases
 {
-    private readonly IUserTokenManager _userToken;
+    private readonly IUserTokenManager _TokenManager;
 
     private readonly ITokenService _tokenService;
 
@@ -42,7 +42,7 @@ public class UserUseCases : IUserUseCases
         _userRepository = userRepository;
         _emailServisces = emailServisces;
         _mapper = mapper;
-        _userToken = userTokenManager;
+        _TokenManager = userTokenManager;
         _tokenService = tokenService;
         _configuration = configuration;
     }
@@ -50,18 +50,20 @@ public class UserUseCases : IUserUseCases
     public async Task<string?> LoginAsync(LoginUser data)
     {
         var user = await _userRepository.VerifyUser(data.UserName, data.Password);
-        if (user != null)
+        if (user.Item1 != null)
         {
-            if (user.TwoFactorEnabled)
+            if (user.Item2)
             {
-                var token = await _userRepository.GetOtpLoginByAsyn(user);
-                var message = new Message(new string[] { user.Email! }, "Confirmar Email por el link", token);
+                var token = await _userRepository.GetOtpLoginByAsyn(user.Item1);
+                var message = new Message(new string[] { user.Item1.Email! }, "Confirmar Email por el link", token);
                 _emailServisces.SendMail(message);
                 // Si requiere 2FA, retorna null y el controlador puede manejar el mensaje
                 return null;
             }
-            var claims = await _userRepository.AddClaimForUser(user);
+            var claims = await _userRepository.AddClaimForUser(user.Item1);
             var response = _tokenService.GetToken(claims);
+            var TokenRefresh = _tokenService.GenerateRefreshToken();
+            await _TokenManager.SetRefreshTokenAsync(user.Item1, TokenRefresh);
             return response.ToString();
         }
         throw new Exception("Usuario o contraseña incorrectos");
@@ -75,8 +77,7 @@ public class UserUseCases : IUserUseCases
             var isValid = await _userRepository.Verify2FA(user, data.Token);
             if (isValid)
             {
-                var dto = await _userRepository.GetUserRoles(user);
-                var claims = await _userRepository.AddClaimForUser(dto);
+                var claims = await _userRepository.AddClaimForUser(user);
                 var response = _tokenService.GetToken(claims);
                 return response.ToString();
             }
@@ -113,7 +114,7 @@ public class UserUseCases : IUserUseCases
             await _userRepository.AssingRoleToUserAsyn(createUserResponse.User, new List<string> { "user" });
 
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(createUserResponse.Token));
-            var message = bodyEmail("reset-password", encodedToken, data.registerUser.Email);
+            var message = bodyEmail("confirm-email", encodedToken, data.registerUser.Email);
             _emailServisces.SendMail(message);
             return;
 
@@ -159,6 +160,7 @@ public class UserUseCases : IUserUseCases
         {
             var token = await _userRepository.GeneratePasswordReset(user);
             var encodedToken = Uri.EscapeDataString(token);
+            // var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
             var message = bodyEmail("reset-password", encodedToken, email);
             _emailServisces.SendMail(message);
             return;
@@ -199,7 +201,7 @@ public class UserUseCases : IUserUseCases
     // }
     private Message bodyEmail(string endpoint, string token, string email)
     {
-        var confirmationLink = $"{_configuration["Frontend:BaseUrl"]}/{endpoint}?Token={token}&email={email}";
+        var confirmationLink = $"{_configuration["Frontend:BaseUrl"]}/{endpoint}?token={token}&email={email}";
         var htmlBody = EmailTemplateBuilder.GetConfirmationEmail(confirmationLink);
 
         var message = new Message(new string[] { email! }, "Confirmar Email por el link", htmlBody!) { IsHtml = true };

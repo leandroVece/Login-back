@@ -17,6 +17,7 @@ public class UserTokenManager : IUserTokenManager
 
     public async Task SetRefreshTokenAsync(IUser user, string token)
     {
+
         var appUser = await _userManager.FindByIdAsync(user.Id.ToString());
         if (appUser != null)
         {

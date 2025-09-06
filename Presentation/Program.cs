@@ -57,6 +57,9 @@ try
 
     app.MapControllers();
 
+    // Imprimir la URL del servidor en consola
+    Console.WriteLine($"Servidor iniciado en: {app.Urls.FirstOrDefault() ?? "http://localhost:5048"}");
+
     app.Run();
 
 }

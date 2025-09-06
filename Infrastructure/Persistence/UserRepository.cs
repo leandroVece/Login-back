@@ -47,15 +47,6 @@ public class UserRepository : IUserRepository
         var appUser = CastToApplicationUser(user);
         return await _userManager.VerifyTwoFactorTokenAsync(appUser, "Email", token);
     }
-    public async Task<ApplicationUserRolDto> GetUserRoles(IUser user)
-    {
-        var appUser = CastToApplicationUser(user);
-        var dto = _mapper.Map<ApplicationUserRolDto>(appUser);
-        var roles = await _userManager.GetRolesAsync(appUser);
-        dto.Roles = roles.ToList();
-        return dto;
-
-    }
 
 
     public async Task<IdentityResult> ConfirmEmailAsync(IUser user, string token)
@@ -76,16 +67,18 @@ public class UserRepository : IUserRepository
         return UserExist;
     }
 
-    public async Task<List<Claim>> AddClaimForUser(ApplicationUserRolDto dto)
+    public async Task<List<Claim>> AddClaimForUser(IUser dto)
     {
+        var appUser = CastToApplicationUser(dto);
+        var roles = await GetUserRol(appUser);
         var authClaims = new List<Claim>{
-                new Claim(ClaimTypes.Name,dto.UserName!),
-                new Claim(ClaimTypes.Email, dto.Email!),
-                new Claim(ClaimTypes.NameIdentifier, dto.Id.ToString()),
+                new Claim(ClaimTypes.Name,appUser.UserName!),
+                new Claim(ClaimTypes.Email, appUser.Email!),
+                new Claim(ClaimTypes.NameIdentifier, appUser.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-        foreach (var role in dto.Roles)
+        foreach (var role in roles)
         {
             authClaims.Add(new Claim(ClaimTypes.Role, role));
         }
@@ -146,28 +139,32 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<ApplicationUserRolDto?> VerifyUser(string userName, string Password)
+    public async Task<(IUser, bool)> VerifyUser(string userName, string Password)
     {
         var user = await GetUserByNameAsync(userName);
         if (user != null && await _userManager.CheckPasswordAsync(user, Password))
         {
-            var dto = _mapper.Map<ApplicationUserRolDto>(user);
-            var roles = await _userManager.GetRolesAsync(user);
-            dto.Roles = roles.ToList();
-            return dto;
+            return (user, user.TwoFactorEnabled);
         }
         else
-            return null;
+            return (null, false);
+    }
+
+    public async Task<List<string>> GetUserRol(IUser user)
+    {
+        var appUser = CastToApplicationUser(user);
+        var roles = await _userManager.GetRolesAsync(appUser);
+        return roles.ToList();
     }
 
     public async Task<ApplicationUser> GetUserByNameAsync(string userName)
     {
         return await _userManager.FindByNameAsync(userName);
     }
-    public async Task<ApplicationUserRolDto> GetUserdtoByNameAsync(string userName)
+    public async Task<IUser?> GetUserdtoByNameAsync(string userName)
     {
         var res = await _userManager.FindByNameAsync(userName);
-        return _mapper.Map<ApplicationUserRolDto>(res);
+        return res;
     }
     public async Task<IUser> GetUserInterfaceByNameAsync(string userName)
     {
@@ -175,10 +172,10 @@ public class UserRepository : IUserRepository
         return res;
     }
 
-    public async Task<string?> GetOtpLoginByAsyn(ApplicationUserRolDto dto)
+    public async Task<string?> GetOtpLoginByAsyn(IUser dto)
     {
         // Solo generas el token si se requiere 2FA
-        var user = _mapper.Map<ApplicationUser>(dto);
+        var user = CastToApplicationUser(dto);
         var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
         return token;
 
@@ -266,11 +263,6 @@ public class UserRepository : IUserRepository
             throw new InvalidCastException("El usuario no es del tipo ApplicationUser.");
         return appUser;
     }
-
-
-
-
-
 
     #endregion
 
