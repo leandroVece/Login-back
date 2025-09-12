@@ -1,4 +1,5 @@
 
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Aplication.Common;
 using Application.Dto;
@@ -64,7 +65,7 @@ public class UserUseCases : IUserUseCases
             var response = _tokenService.GetToken(claims);
             var TokenRefresh = _tokenService.GenerateRefreshToken();
             await _TokenManager.SetRefreshTokenAsync(user.Item1, TokenRefresh);
-            return response.ToString();
+            return new JwtSecurityTokenHandler().WriteToken(response);
         }
         throw new Exception("Usuario o contraseña incorrectos");
     }

@@ -35,7 +35,7 @@ public static class InfrastructureServiceExtensions
         // Configuración de Swagger
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Immersive Words API", Version = "v1" });
+            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Boots Camp API", Version = "v1" });
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 In = ParameterLocation.Header,

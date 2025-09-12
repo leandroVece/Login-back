@@ -3,9 +3,6 @@ using Application.Dto;
 using Application.ingoing;
 using Presentation.Dtos;
 using Serilog;
-using System;
-using Application.UseCases;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
