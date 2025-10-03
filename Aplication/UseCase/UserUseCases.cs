@@ -80,7 +80,9 @@ public class UserUseCases : IUserUseCases
             {
                 var claims = await _userRepository.AddClaimForUser(user);
                 var response = _tokenService.GetToken(claims);
-                return response.ToString();
+                var TokenRefresh = _tokenService.GenerateRefreshToken();
+                await _TokenManager.SetRefreshTokenAsync(user, TokenRefresh);
+                return new JwtSecurityTokenHandler().WriteToken(response);
             }
         }
         throw new Exception("Token inválido o usuario incorrecto");
@@ -95,8 +97,6 @@ public class UserUseCases : IUserUseCases
         }
         throw new Exception("Código inválido");
     }
-
-
 
     public async Task RegisterAsync(RegisterUserWithConsents data)
     {
